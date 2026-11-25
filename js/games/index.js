@@ -11,4 +11,9 @@ export const GAMES = [
     title: 'Tabla de posiciones',
     blurb: 'Lee la tabla de la liga: suma puntos, cuenta partidos y descubre quién va primero.',
   },
+  {
+    id: 'memoria',
+    title: 'Memoria de leyendas',
+    blurb: 'Memoriza las cartas y une cada jugador famoso con el país con el que jugó.',
+  },
 ];

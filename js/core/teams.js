@@ -50,13 +50,18 @@ export function groupOf(team) {
 
 // Small shirt icon used on the team cards.
 const SHIRT = 'M12 3 L3 8 L0 17 L8 20 L10 15 V35 H30 V15 L32 20 L40 17 L37 8 L28 3 C25 8 15 8 12 3Z';
-export function shirtSVG(t) {
-  const id = 'sc-' + t.id;
+// The drawing inside a 40x38 box. `uid` keeps clip-path ids unique when the same team is drawn twice on one page.
+export function shirtInner(t, uid = '') {
+  const id = 'sc-' + t.id + uid;
   let extra = '';
   if (t.pat === 'stripes') extra = `<rect x="8" y="0" width="8" height="40" fill="${t.alt}"/><rect x="24" y="0" width="8" height="40" fill="${t.alt}"/>`;
   if (t.pat === 'band') extra = `<rect x="16" y="0" width="8" height="40" fill="${t.alt}"/>`;
   if (t.pat === 'sleeves') extra = `<rect x="0" y="0" width="10" height="40" fill="${t.alt}"/><rect x="30" y="0" width="10" height="40" fill="${t.alt}"/>`;
-  return `<svg viewBox="0 0 40 38" aria-hidden="true"><defs><clipPath id="${id}"><path d="${SHIRT}"/></clipPath></defs>` +
+  return `<defs><clipPath id="${id}"><path d="${SHIRT}"/></clipPath></defs>` +
     `<path d="${SHIRT}" fill="${t.shirt}"/><g clip-path="url(#${id})">${extra}</g>` +
-    `<path d="${SHIRT}" fill="none" style="stroke:var(--fg);stroke-opacity:.4" stroke-width="1"/></svg>`;
+    `<path d="${SHIRT}" fill="none" style="stroke:var(--fg);stroke-opacity:.4" stroke-width="1"/>`;
+}
+
+export function shirtSVG(t) {
+  return `<svg viewBox="0 0 40 38" aria-hidden="true">${shirtInner(t)}</svg>`;
 }
