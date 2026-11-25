@@ -1,6 +1,6 @@
 // Service worker: keeps the app working offline.
 // IMPORTANT: bump VERSION whenever any file in ASSETS changes, so devices pick up the new files.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CORE = 'penalmulti-core-' + VERSION;
 const RUNTIME = 'penalmulti-runtime';
 
@@ -18,6 +18,7 @@ const ASSETS = [
   'js/core/teams.js',
   'js/core/ui.js',
   'js/games/index.js',
+  'js/games/liga.js',
   'js/games/penales.js',
   'js/screens/home.js',
   'js/screens/progress.js',

@@ -28,7 +28,7 @@ export default {
     }
     const sessions = s.sessions.length
       ? `<ul class="sessions">${s.sessions.map((x) =>
-        `<li><span>${dateLabel(x.t)}</span><span>${x.goals} de ${x.total} goles</span></li>`).join('')}</ul>`
+        `<li><span>${dateLabel(x.t)} · ${x.game === 'liga' ? 'Tabla' : 'Penales'}</span><span>${x.goals} de ${x.total}</span></li>`).join('')}</ul>`
       : '<p>Aún no hay partidos. Cuando juegue el primero, aparece aquí.</p>';
 
     root.innerHTML = topbar('Mi progreso', { back: true }) + `
@@ -52,7 +52,6 @@ export default {
       <section class="panel">
         <h2>Últimos partidos</h2>
         ${sessions}
-        ${s.best ? `<p>Mejor marcador: ${s.best} de 5</p>` : ''}
       </section>`;
   },
 };

@@ -6,4 +6,9 @@ export const GAMES = [
     title: 'Penales de multiplicar',
     blurb: 'Responde la multiplicación y patea al arco. Cada acierto es un gol.',
   },
+  {
+    id: 'liga',
+    title: 'Tabla de posiciones',
+    blurb: 'Lee la tabla de la liga: suma puntos, cuenta partidos y descubre quién va primero.',
+  },
 ];
