@@ -36,6 +36,19 @@ export function findTeam(id) {
   return ALL.find((t) => t.id === id) || null;
 }
 
+// Countries that only appear in the memory game (not selectable as "your team").
+const EXTRA = [
+  { id: 'ita', name: 'Italia', shirt: '#0f5fb4', alt: '#ffffff', pat: 'solid', shorts: '#ffffff', socks: '#0f5fb4' },
+  { id: 'hun', name: 'Hungría', shirt: '#cd2a3e', alt: '#436f4d', pat: 'solid', shorts: '#ffffff', socks: '#436f4d' },
+  { id: 'nir', name: 'Irlanda del Norte', shirt: '#1d7a46', alt: '#ffffff', pat: 'solid', shorts: '#ffffff', socks: '#1d7a46' },
+  { id: 'urs', name: 'Unión Soviética', shirt: '#c8102e', alt: '#f2c200', pat: 'solid', shorts: '#ffffff', socks: '#c8102e' },
+];
+
+// Any national team, including the memory-game-only countries.
+export function findCountry(id) {
+  return ALL.find((t) => t.id === id) || EXTRA.find((t) => t.id === id) || null;
+}
+
 export function getTeam() {
   return findTeam(load('team', 'chi')) || findTeam('chi');
 }

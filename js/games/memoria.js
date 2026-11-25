@@ -1,33 +1,31 @@
 // Memoria de leyendas: match each famous player with the country he played for.
 // Round flow: study phase (all cards face up, no timer) -> cards are hidden -> find the pairs.
 // A wrong pair stays visible until he taps "Seguir", so he can take his time. There is no clock.
+// Player cards use the photo chosen on the "Fotos de jugadores" screen, or a silhouette if there is none.
 import { topbar, esc, pick, shuffle } from '../core/ui.js';
-import { TEAMS, getTeam, shirtInner } from '../core/teams.js';
+import { getTeam, findCountry } from '../core/teams.js';
 import { PLAYERS } from '../data/players.js';
+import { BACK, playerArt, countrySVG } from '../core/cards.js';
 import { load, save } from '../core/store.js';
 import * as audio from '../core/audio.js';
 import * as progress from '../core/progress.js';
+import * as photos from '../core/photos.js';
 
 // Fácil: four pairs and every shirt a different colour, so the colour helps.
 // Normal: six pairs from any countries, several shirts look alike, so he has to know the player.
 const LEVELS = { easy: { pairs: 4, cols: 4, distinct: true }, normal: { pairs: 6, cols: 3, distinct: false } };
-const GROUPS = [['por', 'chi', 'esp', 'bel'], ['eng', 'ger'], ['fra'], ['arg'], ['ned'], ['bra']];
 
-const BACK = '<svg class="msvg" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="14" fill="#ffffff" fill-opacity=".92"/>' +
-  '<polygon points="20,13 26,17.5 23.5,25 16.5,25 14,17.5" fill="#1b1b1b"/></svg>';
-
-function playerSVG(team, uid) {
-  return `<svg class="msvg" viewBox="0 0 40 52" aria-hidden="true"><circle cx="20" cy="9" r="7.5" fill="var(--muted)"/>` +
-    `<svg x="0" y="15" width="40" height="37" viewBox="0 0 40 38">${shirtInner(team, uid)}</svg></svg>`;
-}
-function countrySVG(team, uid) {
-  return `<svg class="msvg" viewBox="0 0 40 38" aria-hidden="true">${shirtInner(team, uid)}</svg>`;
-}
+// Countries that have at least one player.
+const COUNTRIES = new Set();
+PLAYERS.forEach((p) => { COUNTRIES.add(p.c); if (p.alt) COUNTRIES.add(p.alt); });
+// Countries whose shirts have a similar main colour; Fácil takes at most one from each group.
+const GROUPS = [['por', 'chi', 'esp', 'hun', 'urs'], ['eng', 'ger'], ['fra', 'ita'], ['arg'], ['ned'], ['bra'], ['nir']]
+  .map((g) => g.filter((id) => COUNTRIES.has(id))).filter((g) => g.length);
 
 function pickCountries(level) {
   const lv = LEVELS[level];
   const me = getTeam();
-  const mine = TEAMS.sel.indexOf(me) >= 0 ? me.id : null; // his own national team is always in the round
+  const mine = COUNTRIES.has(me.id) ? me.id : null; // his own national team is in the round when it has players
   if (lv.distinct) {
     const groups = shuffle(GROUPS).slice(0, lv.pairs);
     if (mine) {
@@ -36,17 +34,32 @@ function pickCountries(level) {
     }
     return groups.map((g) => (mine && g.indexOf(mine) >= 0 ? mine : pick(g)));
   }
-  const pool = shuffle(TEAMS.sel.map((t) => t.id).filter((id) => id !== mine));
+  const pool = shuffle(Array.from(COUNTRIES).filter((id) => id !== mine));
   return (mine ? [mine] : []).concat(pool).slice(0, lv.pairs);
 }
 
-function buildCards(level) {
+// One player per country. A player who also played for a second country is only used when
+// that second country is not in the round, so a pair is never ambiguous.
+function assign(ids) {
+  const used = new Set(), out = [];
+  for (const id of shuffle(ids)) {
+    const cand = PLAYERS.filter((p) => (p.c === id || p.alt === id) && !used.has(p.id) &&
+      [p.c, p.alt].filter((x) => x && x !== id).every((x) => ids.indexOf(x) < 0));
+    if (!cand.length) return null;
+    const p = pick(cand); used.add(p.id); out.push({ id, p });
+  }
+  return out;
+}
+
+function buildCards(level, pics) {
+  let ids, asg = null;
+  for (let t = 0; t < 80 && !asg; t++) { ids = pickCountries(level); asg = assign(ids); }
+  if (!asg) { ids = ['arg', 'bra', 'fra', 'ned']; asg = assign(ids); }
   const cards = [];
-  pickCountries(level).forEach((id, i) => {
-    const team = TEAMS.sel.find((t) => t.id === id);
-    const p = pick(PLAYERS.filter((x) => x.c === id));
-    cards.push({ k: 'p', pair: i, label: p.n, team, up: false, done: false });
-    cards.push({ k: 'c', pair: i, label: team.name, team, up: false, done: false });
+  asg.forEach((a, i) => {
+    const team = findCountry(a.id);
+    cards.push({ k: 'p', pair: i, label: a.p.n, team, photo: pics[a.p.id] || null, up: false, done: false });
+    cards.push({ k: 'c', pair: i, label: team.name, team, photo: null, up: false, done: false });
   });
   return shuffle(cards);
 }
@@ -71,6 +84,7 @@ export default {
           <button type="button" id="lvNormal">Normal</button>
         </div>
         <p id="lvHelp"></p>
+        <p id="photoInfo"></p>
         <button class="btn" id="startBtn" type="button">¡A jugar!</button>
       </section>
 
@@ -111,6 +125,11 @@ export default {
     $('#lvEasy').addEventListener('click', () => { level = 'easy'; save('memoria-level', level); paintLevel(); });
     $('#lvNormal').addEventListener('click', () => { level = 'normal'; save('memoria-level', level); paintLevel(); });
 
+    photos.getAll().then((pics) => {
+      const n = PLAYERS.filter((p) => pics[p.id]).length;
+      $('#photoInfo').innerHTML = `Jugadores con foto: ${n} de ${PLAYERS.length}. <a href="#/fotos">${n ? 'Cambiar fotos' : 'Agregar fotos'}</a>`;
+    });
+
     function show(id) { ['setup', 'study', 'play', 'result'].forEach((k) => { $('#' + k).hidden = (k !== id); }); }
     function renderHud() { $('#found').textContent = found + ' / ' + pairs; $('#tries').textContent = tries; }
 
@@ -124,13 +143,14 @@ export default {
     function renderCards() {
       const box = $('#cards');
       box.style.setProperty('--cols', LEVELS[level].cols);
+      box.dataset.cols = LEVELS[level].cols;
       box.innerHTML = '';
       els = cards.map((c, i) => {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'mcard ' + c.k;
         b.dataset.pair = c.pair; b.dataset.k = c.k;
-        const art = c.k === 'p' ? playerSVG(c.team, 'p' + i) : countrySVG(c.team, 'c' + i);
+        const art = c.k === 'p' ? playerArt(c.team, 'p' + i, c.photo) : countrySVG(c.team, 'c' + i);
         b.innerHTML = `<span class="minner"><span class="mface mback">${BACK}</span>` +
           `<span class="mface mfront"><span class="mlab">${c.k === 'p' ? 'Jugador' : 'País'}</span>${art}<span class="mname">${esc(c.label)}</span></span></span>`;
         b.addEventListener('click', () => tap(i));
@@ -141,8 +161,9 @@ export default {
       cards.forEach((_, i) => paintCard(i));
     }
 
-    function startRound() {
-      cards = buildCards(level);
+    async function startRound() {
+      const pics = await photos.getAll();
+      cards = buildCards(level, pics);
       pairs = cards.length / 2; found = 0; tries = 0; flipped = []; locked = false;
       renderCards();
       cards.forEach((c, i) => { c.up = true; paintCard(i); }); // study phase: everything face up
