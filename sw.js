@@ -1,6 +1,6 @@
 // Service worker: keeps the app working offline.
 // IMPORTANT: bump VERSION whenever any file in ASSETS changes, so devices pick up the new files.
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CORE = 'penalmulti-core-' + VERSION;
 const RUNTIME = 'penalmulti-runtime';
 
