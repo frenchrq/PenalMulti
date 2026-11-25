@@ -1,4 +1,6 @@
-// Memoria de leyendas: match each famous player with the country he played for.
+// Memoria de leyendas, two modes:
+//   classic: find the two identical cards of each player (the classic memory game).
+//   pairs:   match each famous player with the country he played for.
 // Round flow: study phase (all cards face up, no timer) -> cards are hidden -> find the pairs.
 // A wrong pair stays visible until he taps "Seguir", so he can take his time. There is no clock.
 // Player cards use the photo chosen on the "Fotos de jugadores" screen, or a silhouette if there is none.
@@ -64,6 +66,18 @@ function buildCards(level, pics) {
   return shuffle(cards);
 }
 
+// Classic mode: every player appears on two identical cards. Players with a photo are used first.
+function buildClassic(level, pics) {
+  const n = LEVELS[level].pairs;
+  const chosen = shuffle(PLAYERS.filter((p) => pics[p.id])).concat(shuffle(PLAYERS.filter((p) => !pics[p.id]))).slice(0, n);
+  const cards = [];
+  chosen.forEach((p, i) => {
+    const team = findCountry(p.c);
+    for (let k = 0; k < 2; k++) cards.push({ k: 'p', pair: i, label: p.n, team, photo: pics[p.id] || null, up: false, done: false });
+  });
+  return shuffle(cards);
+}
+
 export default {
   title: 'Memoria de leyendas',
 
@@ -77,8 +91,12 @@ export default {
       <div class="mcards" id="cards" hidden></div>
 
       <section class="panel" id="setup">
-        <h2>Une cada jugador con su país</h2>
-        <p>Primero miras todas las cartas con calma. Después se esconden y buscas las parejas: un jugador y el país con el que jugó. No hay reloj.</p>
+        <h2 id="setupTitle"></h2>
+        <p id="setupText"></p>
+        <div class="seg" role="group" aria-label="Tipo de juego">
+          <button type="button" id="mdClassic">Cartas iguales</button>
+          <button type="button" id="mdPairs">Jugador y país</button>
+        </div>
         <div class="seg" role="group" aria-label="Nivel">
           <button type="button" id="lvEasy">Fácil</button>
           <button type="button" id="lvNormal">Normal</button>
@@ -90,12 +108,12 @@ export default {
 
       <section class="panel" id="study" hidden>
         <h2>Mira las cartas con calma</h2>
-        <p>Fíjate en cada jugador y en su país. Cuando quieras, esconde las cartas.</p>
+        <p id="studyText"></p>
         <button class="btn" id="hideBtn" type="button">Esconder las cartas</button>
       </section>
 
       <section class="panel" id="play" hidden>
-        <p id="hint">Toca dos cartas: un jugador y su país.</p>
+        <p id="hint"></p>
         <div class="fb" id="fb" hidden aria-live="polite"></div>
         <button class="btn" id="next" type="button" hidden>Seguir</button>
         <button class="btn" id="finish" type="button" hidden>Ver resultado</button>
@@ -113,17 +131,40 @@ export default {
 
     const $ = (sel) => root.querySelector(sel);
     let level = load('memoria-level', 'easy'); if (!LEVELS[level]) level = 'easy';
+    let mode = load('memoria-mode', 'classic'); if (mode !== 'classic' && mode !== 'pairs') mode = 'classic';
     let cards = [], els = [], phase = 'setup', locked = false, flipped = [], tries = 0, found = 0, pairs = 0;
 
     function paintLevel() {
       $('#lvEasy').setAttribute('aria-pressed', String(level === 'easy'));
       $('#lvNormal').setAttribute('aria-pressed', String(level === 'normal'));
-      $('#lvHelp').textContent = level === 'easy'
-        ? 'Fácil: 4 parejas. Cada camiseta es de un color distinto, así que el color te ayuda.'
-        : 'Normal: 6 parejas. Hay camisetas parecidas, tienes que conocer al jugador.';
+      if (mode === 'classic') {
+        $('#lvHelp').textContent = level === 'easy' ? 'Fácil: 4 parejas (8 cartas).' : 'Normal: 6 parejas (12 cartas).';
+      } else {
+        $('#lvHelp').textContent = level === 'easy'
+          ? 'Fácil: 4 parejas. Cada camiseta es de un color distinto, así que el color te ayuda.'
+          : 'Normal: 6 parejas. Hay camisetas parecidas, tienes que conocer al jugador.';
+      }
+    }
+    function paintMode() {
+      $('#mdClassic').setAttribute('aria-pressed', String(mode === 'classic'));
+      $('#mdPairs').setAttribute('aria-pressed', String(mode === 'pairs'));
+      if (mode === 'classic') {
+        $('#setupTitle').textContent = 'Encuentra las cartas iguales';
+        $('#setupText').textContent = 'Primero miras todas las cartas con calma. Después se esconden y buscas las dos cartas del mismo jugador. No hay reloj.';
+        $('#studyText').textContent = 'Fíjate en cada jugador y en dónde está. Cuando quieras, esconde las cartas.';
+        $('#hint').textContent = 'Toca dos cartas: busca las dos del mismo jugador.';
+      } else {
+        $('#setupTitle').textContent = 'Une cada jugador con su país';
+        $('#setupText').textContent = 'Primero miras todas las cartas con calma. Después se esconden y buscas las parejas: un jugador y el país con el que jugó. No hay reloj.';
+        $('#studyText').textContent = 'Fíjate en cada jugador y en su país. Cuando quieras, esconde las cartas.';
+        $('#hint').textContent = 'Toca dos cartas: un jugador y su país.';
+      }
+      paintLevel();
     }
     $('#lvEasy').addEventListener('click', () => { level = 'easy'; save('memoria-level', level); paintLevel(); });
     $('#lvNormal').addEventListener('click', () => { level = 'normal'; save('memoria-level', level); paintLevel(); });
+    $('#mdClassic').addEventListener('click', () => { mode = 'classic'; save('memoria-mode', mode); paintMode(); });
+    $('#mdPairs').addEventListener('click', () => { mode = 'pairs'; save('memoria-mode', mode); paintMode(); });
 
     photos.getAll().then((pics) => {
       const n = PLAYERS.filter((p) => pics[p.id]).length;
@@ -151,8 +192,9 @@ export default {
         b.className = 'mcard ' + c.k;
         b.dataset.pair = c.pair; b.dataset.k = c.k;
         const art = c.k === 'p' ? playerArt(c.team, 'p' + i, c.photo) : countrySVG(c.team, 'c' + i);
+        const lab = mode === 'pairs' ? `<span class="mlab">${c.k === 'p' ? 'Jugador' : 'País'}</span>` : '';
         b.innerHTML = `<span class="minner"><span class="mface mback">${BACK}</span>` +
-          `<span class="mface mfront"><span class="mlab">${c.k === 'p' ? 'Jugador' : 'País'}</span>${art}<span class="mname">${esc(c.label)}</span></span></span>`;
+          `<span class="mface mfront">${lab}${art}<span class="mname">${esc(c.label)}</span></span></span>`;
         b.addEventListener('click', () => tap(i));
         box.appendChild(b);
         return b;
@@ -163,7 +205,7 @@ export default {
 
     async function startRound() {
       const pics = await photos.getAll();
-      cards = buildCards(level, pics);
+      cards = mode === 'classic' ? buildClassic(level, pics) : buildCards(level, pics);
       pairs = cards.length / 2; found = 0; tries = 0; flipped = []; locked = false;
       renderCards();
       cards.forEach((c, i) => { c.up = true; paintCard(i); }); // study phase: everything face up
@@ -187,10 +229,13 @@ export default {
       const a = cards[flipped[0]], b = cards[flipped[1]];
       const fb = $('#fb');
       $('#hint').hidden = true;
-      if (a.k !== b.k && a.pair === b.pair) {
+      const isMatch = mode === 'classic' ? a.pair === b.pair : (a.k !== b.k && a.pair === b.pair);
+      if (isMatch) {
         a.done = b.done = true; found++;
         flipped.forEach((j) => paintCard(j)); flipped = [];
-        fb.className = 'fb'; fb.textContent = '¡Pareja! ' + (a.k === 'p' ? a.label : b.label) + ' juega con ' + (a.k === 'c' ? a.label : b.label) + '.';
+        fb.className = 'fb';
+        fb.textContent = mode === 'classic' ? '¡Pareja! Las dos de ' + a.label + '.'
+          : '¡Pareja! ' + (a.k === 'p' ? a.label : b.label) + ' juega con ' + (a.k === 'c' ? a.label : b.label) + '.';
         audio.goalChime();
         if (found === pairs) { phase = 'done'; $('#finish').hidden = false; $('#finish').focus(); }
       } else {
@@ -198,7 +243,8 @@ export default {
         const p = a.k === 'p' ? a : b.k === 'p' ? b : null;
         const k = a.k === 'c' ? a : b.k === 'c' ? b : null;
         fb.className = 'fb miss';
-        fb.textContent = p && k ? 'Casi. ' + p.label + ' no es de ' + k.label + '.'
+        if (mode === 'classic') fb.textContent = 'Casi. ' + a.label + ' y ' + b.label + ' no son iguales.';
+        else fb.textContent = p && k ? 'Casi. ' + p.label + ' no es de ' + k.label + '.'
           : 'Son dos ' + (a.k === 'p' ? 'jugadores' : 'países') + '. Busca un jugador y su país.';
         els[flipped[0]].classList.add('bad'); els[flipped[1]].classList.add('bad');
         audio.saveSound();
@@ -214,7 +260,7 @@ export default {
     });
 
     function showResult() {
-      const key = 'memoria-best-' + level;
+      const key = (mode === 'classic' ? 'memoria-best-classic-' : 'memoria-best-') + level;
       const prev = Number(load(key, 0)) || 0;
       if (!prev || tries < prev) save(key, tries);
       const best = Math.min(prev || tries, tries);
@@ -232,6 +278,6 @@ export default {
     $('#startBtn').addEventListener('click', startRound);
     $('#again').addEventListener('click', () => { $('#cards').hidden = true; startRound(); });
 
-    paintLevel(); show('setup');
+    paintMode(); show('setup');
   },
 };
