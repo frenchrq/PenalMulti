@@ -20,6 +20,11 @@ export default {
         </div>
       </section>
       <section class="panel">
+        <h2>Fotos de jugadores</h2>
+        <p>Elige fotos para las cartas de la memoria. Se quedan solo en este dispositivo.</p>
+        <a class="btn ghost" href="#/fotos">Elegir fotos</a>
+      </section>
+      <section class="panel">
         <h2>Empezar de cero</h2>
         <p>Borra el progreso guardado en este dispositivo: multiplicaciones practicadas y partidos. El equipo y los ajustes se quedan.</p>
         <button class="btn ghost danger" id="reset" type="button">Borrar progreso</button>

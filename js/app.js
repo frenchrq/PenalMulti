@@ -7,8 +7,9 @@ import settings from './screens/settings.js';
 import penales from './games/penales.js';
 import liga from './games/liga.js';
 import memoria from './games/memoria.js';
+import fotos from './screens/fotos.js';
 
-const ROUTES = { '': home, equipo: team, progreso: progress, ajustes: settings, penales, liga, memoria };
+const ROUTES = { '': home, equipo: team, progreso: progress, ajustes: settings, fotos, penales, liga, memoria };
 
 let cleanup = null;
 
