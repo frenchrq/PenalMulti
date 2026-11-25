@@ -35,8 +35,8 @@ export function weight(a, b) {
   return l === 0 ? 3 : l === 1 ? 4 : 1;
 }
 
-export function addSession(goals, total, tables) {
-  data.sessions.push({ t: Date.now(), goals, total, tables });
+export function addSession(goals, total, tables, game = 'penales') {
+  data.sessions.push({ t: Date.now(), goals, total, tables, game });
   if (data.sessions.length > 60) data.sessions = data.sessions.slice(-60);
   save(KEY, data);
 }

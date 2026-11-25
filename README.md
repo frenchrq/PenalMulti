@@ -9,6 +9,7 @@ home screen of a phone or tablet.
 ## What is in it
 
 - **Penales de multiplicar**: answer the multiplication, take the kick. A right answer is a goal, a wrong one is saved by the keeper and that fact comes back a couple of shots later.
+- **Tabla de posiciones**: a four-team league table (PJ, G, E, P, Pts). Five questions per round, one of each kind: points from wins and draws (a multiplication by 3), games played, the table after a new result, how many points a team is behind another, and who leads. Two levels: Fácil and Normal.
 - **Team picker**: 20 teams (10 national teams, 10 clubs) with plain home-kit colours (no crests or logos). The player and the crowd wear the chosen colours.
 - **Progress**: tracks the 45 distinct facts from 1x1 to 9x9 as not seen / practising / secure, shown to the parent as a 9x9 grid. New and shaky facts are asked more often.
 - **Settings**: sound on/off, and a calm mode with no animations.
@@ -68,7 +69,7 @@ icons/
 
 ## Ideas for later
 
-- League table game (addition and subtraction with goals and points).
+- Goal difference in the league table (needs negative numbers).
 - Build a team: collect players by finishing rounds.
 - Division, and mixed practice.
 - Export or import progress between devices.
